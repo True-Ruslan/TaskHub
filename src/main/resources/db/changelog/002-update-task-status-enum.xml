@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="002-update-task-status-enum" author="taskhub">
+        <!-- Обновляем существующие записи с NEW на TODO -->
+        <sql>
+            UPDATE tasks SET status = 'TODO' WHERE status = 'NEW';
+        </sql>
+        
+        <!-- Изменяем значение по умолчанию -->
+        <sql>
+            ALTER TABLE tasks ALTER COLUMN status SET DEFAULT 'TODO';
+        </sql>
+        
+        <!-- Добавляем ограничение на допустимые значения статуса -->
+        <sql>
+            ALTER TABLE tasks ADD CONSTRAINT check_task_status 
+            CHECK (status IN ('TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'));
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import java.time.Duration;
 import java.util.List;
+import reactor.util.retry.Retry;
 
 @Service
 public class OpenRouterClient {
@@ -26,6 +27,11 @@ public class OpenRouterClient {
 
     public OpenRouterClient(@Value("${openrouter.api.key}") String apiKey) {
         this.apiKey = apiKey;
+        
+        // Принудительно используем IPv4 для решения проблем с сетью
+        System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("java.net.preferIPv6Addresses", "false");
+        
         this.webClient = WebClient.builder()
                 .baseUrl("https://openrouter.ai/api/v1")
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + this.apiKey)
@@ -56,7 +62,12 @@ public class OpenRouterClient {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(OpenRouterResponse.class)
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(45))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                    .maxBackoff(Duration.ofSeconds(10))
+                    .doBeforeRetry(retrySignal -> 
+                        logger.warn("Повторная попытка подключения к OpenRouter API. Попытка: {}", 
+                            retrySignal.totalRetries() + 1)))
                 .block();
 
             if (response != null && response.getFirstChoiceContent() != null) {
@@ -74,7 +85,22 @@ public class OpenRouterClient {
             return String.format("Ошибка при обращении к AI сервису: %s", e.getMessage());
         } catch (Exception e) {
             logger.error("Неожиданная ошибка при генерации задачи", e);
-            return String.format("Неожиданная ошибка: %s", e.getMessage());
+            
+            String errorMessage = e.getMessage();
+            if (errorMessage != null) {
+                // Проверяем сетевые ошибки
+                if (errorMessage.contains("Network is unreachable")) {
+                    return "Сетевая ошибка: невозможно достичь AI сервис. Проверьте сетевые настройки (возможно проблема с IPv6).";
+                }
+                if (errorMessage.contains("timeout") || errorMessage.contains("Timeout")) {
+                    return "Превышено время ожидания ответа от AI сервиса. Попробуйте позже.";
+                }
+                if (errorMessage.contains("Connection") || errorMessage.contains("connect")) {
+                    return "Ошибка подключения к AI сервису. Проверьте интернет-соединение и настройки сети.";
+                }
+            }
+            
+            return String.format("Неожиданная ошибка: %s", errorMessage);
         }
     }
 
@@ -82,14 +108,28 @@ public class OpenRouterClient {
         String systemPrompt = """
             Ты - технический аналитик, который создает детальные технические задачи для разработчиков.
             
-            Создай техническую задачу на основе переданной темы. Задача должна включать:
-            1. Четкое описание цели
-            2. Технические требования 
-            3. Критерии приемки
-            4. Примерную оценку сложности
+            Создай техническую задачу на основе переданной темы в формате Markdown. Задача должна включать:
             
-            Формат ответа должен быть структурированным и готовым к использованию разработчиком.
-            Используй русский язык для описания.
+            ## Описание
+            Четкое описание цели и контекста задачи
+            
+            ## Технические требования
+            - Список технических требований
+            - Используемые технологии и инструменты
+            - Архитектурные решения
+            
+            ## Критерии приемки
+            - [ ] Список критериев с чекбоксами
+            - [ ] Каждый критерий должен быть проверяемым
+            
+            ## Детали реализации
+            Подробное описание того, как должно быть реализовано
+            
+            ## Оценка сложности
+            **Сложность**: Легкая/Средняя/Высокая
+            **Примерное время**: X часов/дней
+            
+            Используй русский язык для описания. Обязательно используй Markdown форматирование: заголовки (##, ###), списки (-, *), чекбоксы (- [ ]), выделение (**bold**, *italic*), блоки кода (`code` или ```code blocks```).
             """;
 
         String userPrompt = String.format("Создай техническую задачу на тему: %s", topic);

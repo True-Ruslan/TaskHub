@@ -1,7 +1,8 @@
 package dev.ruslan.taskhub.model.entity;
 
 public enum TaskStatus {
-    NEW,
+    TODO,
     IN_PROGRESS,
-    DONE
+    DONE,
+    CANCELLED
 }

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskHub - Управление задачами</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключаем библиотеку для обработки Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Кастомные стили для лучшего UX */
+        .task-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        /* Стили для Markdown контента */
+        .markdown-content {
+            line-height: 1.6;
+        }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3, 
+        .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+        }
+        .markdown-content h1 { font-size: 1.5rem; }
+        .markdown-content h2 { font-size: 1.3rem; }
+        .markdown-content h3 { font-size: 1.15rem; }
+        .markdown-content p {
+            margin: 0.5rem 0;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        .markdown-content li {
+            margin: 0.25rem 0;
+        }
+        .markdown-content code {
+            background-color: #f3f4f6;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .markdown-content pre {
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .markdown-content blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1rem;
+            margin: 0.5rem 0;
+            color: #6b7280;
+        }
+        .markdown-content strong {
+            font-weight: 600;
+        }
+        .markdown-content em {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Заголовок -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">TaskHub</h1>
+            <p class="text-gray-600">Управление задачами с поддержкой AI</p>
+        </div>
+
+        <!-- Навигация/Табы -->
+        <div class="mb-8">
+            <div class="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
+                <button id="tab-tasks" class="px-4 py-2 rounded-md text-sm font-medium bg-blue-500 text-white transition-colors">
+                    Все задачи
+                </button>
+                <button id="tab-create" class="px-4 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                    Создать задачу
+                </button>
+                <button id="tab-generate" class="px-4 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                    AI Генератор
+                </button>
+            </div>
+        </div>
+
+        <!-- Контейнеры для контента -->
+        <div id="content-tasks" class="content-section">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Список задач</h2>
+                    <button id="refresh-tasks" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm">
+                        Обновить
+                    </button>
+                </div>
+                <div id="tasks-container" class="space-y-4">
+                    <!-- Задачи будут загружены сюда -->
+                </div>
+            </div>
+        </div>
+
+        <div id="content-create" class="content-section hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Создать новую задачу</h2>
+                <div id="task-form-container">
+                    <!-- Форма создания задачи -->
+                </div>
+            </div>
+        </div>
+
+        <div id="content-generate" class="content-section hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">AI Генератор задач</h2>
+                <div id="task-generator-container">
+                    <!-- Форма генерации задач -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Уведомления -->
+        <div id="notifications" class="fixed top-4 right-4 z-50 space-y-2">
+            <!-- Уведомления будут показываться здесь -->
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
