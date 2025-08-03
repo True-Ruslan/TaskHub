@@ -1,0 +1,72 @@
+# Build output
+/target/
+*.jar
+*.war
+*.nar
+
+# Log files
+*.log
+/logs/
+
+# IDE specific files
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Application config with secrets
+application.yml
+
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Maven specific
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Spring Boot specific
+spring.log
+
+# Database
+*.db
+*.sqlite
+*.h2.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Test output
+test-output/
