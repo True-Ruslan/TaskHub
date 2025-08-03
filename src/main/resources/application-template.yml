@@ -37,6 +37,11 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# OpenRouter AI Integration
+openrouter:
+  api:
+    key: ${OPENROUTER_API_KEY:api-key}
+
 ---
 spring:
   config:
@@ -44,8 +49,8 @@ spring:
       on-profile: dev
   datasource:
     url: jdbc:postgresql://localhost:5432/taskdb
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USERNAME:username}
+    password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
