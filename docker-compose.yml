@@ -39,17 +39,23 @@ services:
       - redis
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.1
+    image: confluentinc/cp-zookeeper:7.9.0
     container_name: taskhub-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   kafka:
-    image: confluentinc/cp-kafka:7.5.1
+    image: confluentinc/cp-kafka:7.9.0
     container_name: taskhub-kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"         # для внутреннего доступа (docker)
       - "29092:29092"       # для доступа из твоей машины
@@ -60,19 +66,52 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: taskhub-kafka-ui
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.9.0
+    container_name: taskhub-schema-registry
     ports:
       - "8081:8081"
     environment:
-      KAFKA_CLUSTERS_0_NAME: local-kafka
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+      SCHEMA_REGISTRY_DEBUG: "true"
     depends_on:
-      - kafka
-      - zookeeper
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:7.9.0
+    container_name: taskhub-control-center
+    ports:
+      - "9021:9021"
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: kafka:9092
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONTROL_CENTER_REPLICATION_FACTOR: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+      CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_REPLICATION: 1
+      PORT: 9021
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_started
+    restart: unless-stopped
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest

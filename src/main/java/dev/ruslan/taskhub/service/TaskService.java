@@ -1,8 +1,10 @@
 package dev.ruslan.taskhub.service;
 
+import dev.ruslan.taskhub.kafka.TaskKafkaProducer;
 import dev.ruslan.taskhub.mapper.TaskMapper;
 import dev.ruslan.taskhub.model.dto.TaskCreateDto;
 import dev.ruslan.taskhub.model.dto.TaskDto;
+import dev.ruslan.taskhub.model.dto.events.TaskEvent;
 import dev.ruslan.taskhub.model.entity.Task;
 import dev.ruslan.taskhub.model.entity.TaskStatus;
 import dev.ruslan.taskhub.repository.TaskRepository;
@@ -28,12 +30,15 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
     private final CacheManager cacheManager;
+    private final TaskKafkaProducer taskKafkaProducer;
 
     @Autowired
-    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper, CacheManager cacheManager) {
+    public TaskService(TaskRepository taskRepository, TaskMapper taskMapper, 
+                      CacheManager cacheManager, TaskKafkaProducer taskKafkaProducer) {
         this.taskRepository = taskRepository;
         this.taskMapper = taskMapper;
         this.cacheManager = cacheManager;
+        this.taskKafkaProducer = taskKafkaProducer;
     }
 
     @Transactional(readOnly = true)
@@ -101,6 +106,23 @@ public class TaskService {
         Task savedTask = taskRepository.save(task);
         TaskDto result = taskMapper.toDto(savedTask);
         logger.debug("Created task with ID: {} and added to task cache", result.getId());
+        
+        // Отправка события создания задачи в Kafka
+        try {
+            TaskEvent taskEvent = new TaskEvent(
+                result.getId(),
+                result.getTitle(),
+                result.getStatus(),
+                TaskEvent.TASK_CREATED
+            );
+            taskKafkaProducer.sendTaskCreatedEvent(taskEvent);
+            logger.debug("Task created event sent to Kafka for task ID: {}", result.getId());
+        } catch (Exception e) {
+            logger.error("Failed to send task created event to Kafka for task ID: {}: {}", 
+                result.getId(), e.getMessage(), e);
+            // Не прерываем выполнение, так как задача уже создана
+        }
+        
         return result;
     }
 
@@ -122,6 +144,23 @@ public class TaskService {
             } else {
                 logger.debug("Updated task with ID: {} in database (cache not available)", id);
             }
+            
+            // Отправка события обновления задачи в Kafka
+            try {
+                TaskEvent taskEvent = new TaskEvent(
+                    result.getId(),
+                    result.getTitle(),
+                    result.getStatus(),
+                    TaskEvent.TASK_UPDATED
+                );
+                taskKafkaProducer.sendTaskUpdatedEvent(taskEvent);
+                logger.debug("Task updated event sent to Kafka for task ID: {}", result.getId());
+            } catch (Exception e) {
+                logger.error("Failed to send task updated event to Kafka for task ID: {}: {}", 
+                    result.getId(), e.getMessage(), e);
+                // Не прерываем выполнение, так как задача уже обновлена
+            }
+            
             return Optional.of(result);
         }
 
