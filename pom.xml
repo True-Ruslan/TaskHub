@@ -70,6 +70,13 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- ClickHouse для аналитики -->
+        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>0.7.1</version>
+        </dependency>
+
         <!-- Database -->
         <dependency>
             <groupId>org.postgresql</groupId>

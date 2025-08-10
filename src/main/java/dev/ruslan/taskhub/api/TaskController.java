@@ -18,7 +18,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/tasks")
-@CrossOrigin(origins = "*")
 @Tag(name = "Task Management", description = "API для управления задачами")
 public class TaskController {
 

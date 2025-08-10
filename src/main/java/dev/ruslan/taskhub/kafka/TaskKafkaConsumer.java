@@ -1,5 +1,6 @@
 package dev.ruslan.taskhub.kafka;
 
+import dev.ruslan.taskhub.analytics.ClickHouseService;
 import dev.ruslan.taskhub.model.dto.events.TaskEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,12 @@ import org.springframework.stereotype.Service;
 public class TaskKafkaConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskKafkaConsumer.class);
+    
+    private final ClickHouseService clickHouseService;
+
+    public TaskKafkaConsumer(ClickHouseService clickHouseService) {
+        this.clickHouseService = clickHouseService;
+    }
 
     /**
      * Обрабатывает события создания задач
@@ -84,6 +91,16 @@ public class TaskKafkaConsumer {
         logger.info("Processing task creation: Task '{}' with ID {} has been created with status {}", 
             taskEvent.getTitle(), taskEvent.getId(), taskEvent.getStatus());
         
+        // Сохраняем событие в ClickHouse для аналитики
+        try {
+            clickHouseService.insertTaskEvent(taskEvent);
+            logger.debug("Successfully saved task creation event to ClickHouse for task ID: {}", taskEvent.getId());
+        } catch (Exception e) {
+            logger.error("Failed to save task creation event to ClickHouse for task ID: {}: {}", 
+                taskEvent.getId(), e.getMessage(), e);
+            // Не прерываем обработку, т.к. это не критично для основной функциональности
+        }
+        
         // Здесь может быть дополнительная бизнес-логика:
         // - Отправка уведомлений пользователям
         // - Обновление статистики
@@ -97,6 +114,16 @@ public class TaskKafkaConsumer {
     private void processTaskUpdated(TaskEvent taskEvent) {
         logger.info("Processing task update: Task '{}' with ID {} has been updated to status {}", 
             taskEvent.getTitle(), taskEvent.getId(), taskEvent.getStatus());
+        
+        // Сохраняем событие в ClickHouse для аналитики
+        try {
+            clickHouseService.insertTaskEvent(taskEvent);
+            logger.debug("Successfully saved task update event to ClickHouse for task ID: {}", taskEvent.getId());
+        } catch (Exception e) {
+            logger.error("Failed to save task update event to ClickHouse for task ID: {}: {}", 
+                taskEvent.getId(), e.getMessage(), e);
+            // Не прерываем обработку, т.к. это не критично для основной функциональности
+        }
         
         // Здесь может быть дополнительная бизнес-логика:
         // - Отправка уведомлений о изменениях

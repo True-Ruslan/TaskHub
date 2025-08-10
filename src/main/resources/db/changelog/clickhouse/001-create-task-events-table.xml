@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="001-create-task-events-table" author="ruslan">
+        <comment>Создание таблицы task_events в ClickHouse для хранения событий задач</comment>
+        
+        <!-- 
+        Примечание: Эта миграция предназначена для ClickHouse.
+        Она должна выполняться отдельно от основных PostgreSQL миграций.
+        -->
+        
+        <sql splitStatements="false">
+            CREATE TABLE IF NOT EXISTS task_events (
+                id String,
+                event_type String,
+                title String,
+                status String,
+                created_at DateTime
+            ) ENGINE = MergeTree() 
+            ORDER BY created_at
+            SETTINGS index_granularity = 8192;
+        </sql>
+        
+        <rollback>
+            <sql>DROP TABLE IF EXISTS task_events;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
